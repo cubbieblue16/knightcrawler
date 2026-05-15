@@ -17,137 +17,59 @@ env:
   CONTEXT: ${{ inputs.CONTEXT }}
   DOCKERFILE: ${{ inputs.DOCKERFILE }}
   IMAGE_NAME: ${{ inputs.IMAGE_NAME }}
-  PLATFORMS: linux/amd64,linux/arm64
+  PLATFORMS: linux/amd64
+  REGISTRY: ghcr.io
 
 jobs:
-  set-vars:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setting variables
-        run: |
-          echo "CONTEXT=${{ env.CONTEXT }}"
-          echo "DOCKERFILE=${{ env.DOCKERFILE }}"
-          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}"
-          echo "PLATFORMS=${{ env.PLATFORMS }}"
-    outputs:
-      CONTEXT: ${{ env.CONTEXT }}
-      DOCKERFILE: ${{ env.DOCKERFILE }}
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
-      PLATFORMS: ${{ env.PLATFORMS }}
-
-  build-and-push-images:
-    needs: set-vars
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
-
+      contents: read
+      packages: write
     name: Build Service Image
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: network=host
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Login to Docker Hub
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase repository owner
+        id: repo
+        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build Docker Metadata
         id: docker-metadata
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.set-vars.outputs.IMAGE_NAME }}
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=auto
           tags: |
+            type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
             type=sha,commit=${{ github.sha }}
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build image for scanning
+      - name: Build and Push
         uses: docker/build-push-action@v5
         with:
-          context: ${{ needs.set-vars.outputs.CONTEXT }}
-          file: ${{ needs.set-vars.outputs.DOCKERFILE }}
-          push: true
-          provenance: false
-          tags: localhost:5000/dockle-examine-image:test
-          platforms: ${{ needs.set-vars.outputs.PLATFORMS }}
-          cache-from: type=gha,scope=${{ github.workflow }}
-          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
-
-      - name: Pull Built Image for Scanning
-        run: |
-          docker pull localhost:5000/dockle-examine-image:test
-
-      - name: Dockle - Examine Best Practices
-        uses: davidjameshowell/dockle-action@ad7164c945d12d55ac5e639f91f0a5c708a4cdce
-        with:
-          image: localhost:5000/dockle-examine-image:test
-          dockle-ignores: CIS-DI-0005 # Ignore `Enable Content trust for Docker`
-
-      - name: Run Trivy vulnerability scanner - human readable output
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: localhost:5000/dockle-examine-image:test
-          scan-type: 'image'
-          format: 'table'
-          exit-code: '0'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-          scanners: 'vuln,secret,config'
-        env:
-          TRIVY_NON_SSL: true
-
-      - name: Run Trivy vulnerability scanner (sarif report)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: localhost:5000/dockle-examine-image:test
-          scan-type: 'image'
-          format: 'sarif'
-          exit-code: '0'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-          scanners: 'vuln,secret,config'
-          output: 'trivy-results-os.sarif'
-        env:
-          TRIVY_NON_SSL: true
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results-os.sarif'
-
-      - name: Push Service Image to repo
-        # if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ needs.set-vars.outputs.CONTEXT }}
-          file: ${{ needs.set-vars.outputs.DOCKERFILE }}
+          context: ${{ env.CONTEXT }}
+          file: ${{ env.DOCKERFILE }}
           push: true
           provenance: false
           tags: ${{ steps.docker-metadata.outputs.tags }}
           labels: ${{ steps.docker-metadata.outputs.labels }}
-          platforms: ${{ needs.set-vars.outputs.PLATFORMS }}
+          platforms: ${{ env.PLATFORMS }}
           cache-from: type=gha,scope=${{ github.workflow }}
           cache-to: type=gha,mode=max,scope=${{ github.workflow }}

@@ -2,9 +2,10 @@ name: Build and Push Tissue Service
 
 on:
   push:
-    tags:
-      - '**'
+    branches:
+      - main
     paths:
+      - '.github/workflows/**'
       - 'src/tissue/**'
   workflow_dispatch:
 

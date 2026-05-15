@@ -2,9 +2,10 @@ name: Build and Push Migrator Service
 
 on:
   push:
-    tags:
-      - '**'
+    branches:
+      - main
     paths:
+      - '.github/workflows/**'
       - 'src/migrator/**'
   workflow_dispatch:
 

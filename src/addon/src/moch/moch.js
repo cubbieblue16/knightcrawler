@@ -9,6 +9,7 @@ import * as options from './options.js';
 import * as premiumize from './premiumize.js';
 import * as putio from './putio.js';
 import * as realdebrid from './realdebrid.js';
+import * as torbox from './torbox.js';
 import StaticResponse, { isStaticUrl } from './static.js';
 
 const RESOLVE_TIMEOUT = 2 * 60 * 1000; // 2 minutes
@@ -55,6 +56,13 @@ export const MochOptions = {
     instance: putio,
     name: 'Put.io',
     shortName: 'Putio',
+    catalog: true
+  },
+  torbox: {
+    key: 'torbox',
+    instance: torbox,
+    name: 'TorBox',
+    shortName: 'TB',
     catalog: true
   }
 };

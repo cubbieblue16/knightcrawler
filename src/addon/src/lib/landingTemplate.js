@@ -207,6 +207,7 @@ export default function landingTemplate(manifest, config = {}) {
   const putioKey = config[MochOptions.putio.key] || '';
   const putioClientId = putioKey.replace(/@.*/, '');
   const putioToken = putioKey.replace(/.*@/, '');
+  const torboxApiKey = config[MochOptions.torbox.key] || '';
 
   const background = manifest.background || 'https://dl.strem.io/addon-background.jpg';
   const logo = manifest.logo || 'https://dl.strem.io/addon-logo.png';
@@ -324,6 +325,11 @@ export default function landingTemplate(manifest, config = {}) {
            <input type="text" id="iPutioToken" placeholder="Token" onchange="generateInstallLink()" class="input">
          </div>
 
+         <div id="dTorbox">
+           <label class="label" for="iTorbox">TorBox API Key (Find it <a href='https://torbox.app/settings' target="_blank">here</a>):</label>
+           <input type="text" id="iTorbox" onchange="generateInstallLink()" class="input">
+         </div>
+
          <div id="dDebridOptions">
            <label class="label" for="iDebridOptions">Debrid options:</label>
            <select id="iDebridOptions" class="input" onchange="generateInstallLink()" name="debridOptions[]" multiple="multiple">
@@ -379,6 +385,7 @@ export default function landingTemplate(manifest, config = {}) {
               $('#iOffcloud').val("${offcloudApiKey}");
               $('#iPutioClientId').val("${putioClientId}");
               $('#iPutioToken').val("${putioToken}");
+              $('#iTorbox').val("${torboxApiKey}");
               $('#iSort').val("${sort}");
               $('#iLimit').val("${limit}");
               $('#iSizeFilter').val("${sizeFilter}");
@@ -404,6 +411,7 @@ export default function landingTemplate(manifest, config = {}) {
             $('#dDebridLink').toggle(provider === '${MochOptions.debridlink.key}');
             $('#dOffcloud').toggle(provider === '${MochOptions.offcloud.key}');
             $('#dPutio').toggle(provider === '${MochOptions.putio.key}');
+            $('#dTorbox').toggle(provider === '${MochOptions.torbox.key}');
           }
 
           function generateInstallLink() {
@@ -421,6 +429,7 @@ export default function landingTemplate(manifest, config = {}) {
               const offcloudValue = $('#iOffcloud').val() || ''
               const putioClientIdValue = $('#iPutioClientId').val() || '';
               const putioTokenValue = $('#iPutioToken').val() || '';
+              const torboxValue = $('#iTorbox').val() || '';
 
               const qualityFilters = qualityFilterValue.length && qualityFilterValue;
               const sort = sortValue !== '${SortOptions.options.qualitySeeders.key}' && sortValue;
@@ -435,6 +444,7 @@ export default function landingTemplate(manifest, config = {}) {
               const debridLink = debridLinkValue.length && debridLinkValue.trim();
               const offcloud = offcloudValue.length && offcloudValue.trim();
               const putio = putioClientIdValue.length && putioTokenValue.length && putioClientIdValue.trim() + '@' + putioTokenValue.trim();
+              const torbox = torboxValue.length && torboxValue.trim();
 
               let configurationValue = [
                     ['${SortOptions.key}', sort],
@@ -448,7 +458,8 @@ export default function landingTemplate(manifest, config = {}) {
                     ['${MochOptions.alldebrid.key}', allDebrid],
                     ['${MochOptions.debridlink.key}', debridLink],
                     ['${MochOptions.offcloud.key}', offcloud],
-                    ['${MochOptions.putio.key}', putio]
+                    ['${MochOptions.putio.key}', putio],
+                    ['${MochOptions.torbox.key}', torbox]
                   ].filter(([_, value]) => value.length).map(([key, value]) => key + '=' + value).join('|');
               const configuration = configurationValue && configurationValue.length ? '/' + configurationValue : '';
               const location = window.location.host + configuration + '/manifest.json'

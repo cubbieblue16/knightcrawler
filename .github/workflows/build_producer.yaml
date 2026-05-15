@@ -2,9 +2,10 @@ name: Build and Push Producer Service
 
 on:
   push:
-    tags:
-      - '**'
+    branches:
+      - main
     paths:
+      - '.github/workflows/**'
       - 'src/producer/**'
   workflow_dispatch:
 

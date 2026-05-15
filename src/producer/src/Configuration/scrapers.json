@@ -30,7 +30,7 @@
       {
         "Name": "SyncTgxJob",
         "IntervalSeconds": 60,
-        "Enabled": true,
+        "Enabled": false,
         "Url": "https://tgx.rs/rss"
       },
       {
