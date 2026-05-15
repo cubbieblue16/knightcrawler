@@ -82,6 +82,7 @@ services:
     restart: "no"
 
   addon:
+    container_name: knightcrawler-addon
     depends_on:
       metadata:
         condition: service_completed_successfully
@@ -99,8 +100,10 @@ services:
     labels:
       logging: promtail
     networks:
-      - knightcrawler-network
-      - cloudflared_net
+      knightcrawler-network:
+      cloudflared_net:
+        aliases:
+          - knightcrawler-addon
     restart: unless-stopped
 
   consumer:
